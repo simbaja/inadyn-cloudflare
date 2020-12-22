@@ -36,8 +36,11 @@ async function handleRequest(request) {
     })
   }
   const query = requestUrl.query
-  const hostname = query.hostname
+  const hostname_raw = query.hostname
   const ip = query.ip
+
+  // Get the list of hostnames
+  hostnames = hostname_raw.split(";")
 
   // Initialize cloudflare
   const cf = new Cloudflare({
@@ -45,8 +48,15 @@ async function handleRequest(request) {
   })
 
   const zone = await cf.findZone(username)
-  const record = await cf.findRecord(zone, hostname)
-  await cf.updateRecord(record, ip)
+  for(i=0;i<hostnames.length;i++) {
+
+    //compute the full host name
+    hostname = hostnames[i] + '.' + username
+    const record = await cf.findRecord(zone, hostname)
+
+    //update the record
+    await cf.updateRecord(record, ip)  
+  }
 
   return new Response('ok', {
     headers: {
